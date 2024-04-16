@@ -5,6 +5,9 @@ export type Writable<T> = {
   subscribe(callback: (value: T) => void): () => void;
 };
 
+const _getHashFromFn = (fn: Function): string =>
+  Buffer.from(fn.toString()).toString("base64");
+
 /**
  * Creates a writable object with the given initial value.
  *
@@ -24,7 +27,7 @@ export type Writable<T> = {
  */
 export const createWritable = <T>(initialValue: T): Writable<T> => {
   let value: T = initialValue;
-  const subscribers: Set<(value: T) => void> = new Set();
+  const subscribers: Map<string, (value: T) => void> = new Map();
 
   const set = (newValue: T) => {
     value = newValue;
@@ -34,9 +37,11 @@ export const createWritable = <T>(initialValue: T): Writable<T> => {
   const update = (callback: (value: T) => T) => set(callback(value));
 
   const subscribe = (callback: (value: T) => void) => {
-    subscribers.add(callback);
-    callback(value);
-    return () => subscribers.delete(callback);
+    const hash = _getHashFromFn(callback);
+    subscribers.set(hash, callback);
+    return () => {
+      subscribers.delete(hash);
+    };
   };
 
   return {
