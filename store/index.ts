@@ -19,14 +19,15 @@ const DEFAULT_HASH_DICTIONARY = `_${ALPHABET.toUpperCase()}${ALPHABET}`;
  *   - value: T - The current value of the writable object.
  *   - set(newValue: T): void - Sets the value of the writable object to the specified new value and notifies all subscribers.
  *   - update(callback: Function): void - Calls the specified callback function with the current value of the writable object.
- *   - subscribe(callback: Function): Function - Subscribes the specified callback function to value changes of the writable object. Returns an unsubscribe function.
+ *   - subscribe(callback: Function): string - Subscribes the specified callback function to value changes of the writable object. Returns a unique identifier for the subscriber.
+ *   - unsubscribe(id: string): void - Unsubscribes the specified callback function from value changes of the writable object.
  *
  * @example
  * const count = createWritable(0)
- * const unsubscribe = count.subscribe((value) => console.log('The new count value is:', value))
+ * const subscriberId = count.subscribe((value) => console.log('The new count value is:', value))
  * count.set(1)
  * count.update((current) => current + 1)
- * unsubscribe()
+ * count.unsubscribe(subscriberId)
  */
 export const createWritable = <T>(initialValue: T): Writable<T> => {
   let value: T = initialValue;
