@@ -1,12 +1,15 @@
+type SubscriberId = string;
+
 export type Writable<T> = {
   value: T;
   set(newValue: T): void;
   update(callback: (value: T) => T): void;
-  subscribe(callback: (value: T) => void): () => void;
+  subscribe(callback: (value: T) => void): SubscriberId;
+  unsubscribe(id: SubscriberId): void;
 };
 
-const _getHashFromFn = (fn: Function): string =>
-  Buffer.from(fn.toString()).toString("base64");
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+const DEFAULT_HASH_DICTIONARY = `_${ALPHABET.toUpperCase()}${ALPHABET}`;
 
 /**
  * Creates a writable object with the given initial value.
@@ -29,6 +32,19 @@ export const createWritable = <T>(initialValue: T): Writable<T> => {
   let value: T = initialValue;
   const subscribers: Map<string, (value: T) => void> = new Map();
 
+  const _getRandomHash = (length = 10, dictionary = DEFAULT_HASH_DICTIONARY) =>
+    Array.from({ length }, () =>
+      dictionary.charAt(Math.floor(Math.random() * dictionary.length))
+    ).join("");
+
+  const _getUniqueRandomHash = () => {
+    let hash = _getRandomHash();
+    while (subscribers.has(hash)) {
+      hash = _getRandomHash();
+    }
+    return hash;
+  };
+
   const set = (newValue: T) => {
     value = newValue;
     subscribers.forEach((subscriber) => subscriber(newValue));
@@ -37,12 +53,12 @@ export const createWritable = <T>(initialValue: T): Writable<T> => {
   const update = (callback: (value: T) => T) => set(callback(value));
 
   const subscribe = (callback: (value: T) => void) => {
-    const hash = _getHashFromFn(callback);
+    let hash = _getUniqueRandomHash();
     subscribers.set(hash, callback);
-    return () => {
-      subscribers.delete(hash);
-    };
+    return hash;
   };
+
+  const unsubscribe = (id: SubscriberId) => subscribers.delete(id);
 
   return {
     get value() {
@@ -51,5 +67,6 @@ export const createWritable = <T>(initialValue: T): Writable<T> => {
     set,
     update,
     subscribe,
+    unsubscribe,
   };
 };
